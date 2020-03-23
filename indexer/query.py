@@ -1,12 +1,29 @@
 import re
 import simplifier
 
+def db_result(word):
+    return [("url1", [0, 1]), ("url2", [0])]
+
+
+def _one_word_query(word, word_index, urls_weight={}):
+    for t in word_index:
+        if t[0] in urls_weight:
+            urls_weight[t[0]] += len(t[1])
+        else:
+            urls_weight[t[0]] = len(t[1])
+    return urls_weight
+
+def _bigram_word_query(word1, word2, word_index, urls_weight={}):
+    common_urls =
 
 def func(query):
-    query = simplifier.simplify_string(query)
+    sstring = simplifier.simplify_string(query)
 
+    word_index = {}
+    for word in sstring.split(' '):
+        word_index[word] = db_result(word)
 
-def phrase_query(string, index):
+def phrase_query(sstring, part_index):
     string = simplifier.simplify_string(string)
     listOfLists, result = [], []
     for word in string.split():
