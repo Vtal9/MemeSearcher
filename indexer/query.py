@@ -11,7 +11,7 @@ def db_result(word, is_descr=False):
     if is_descr: # get info from description db
         return DB_INDEX_DESCR_SAMPLE[word]
     else:
-        return {word: DB_INDEX_TEXT_SAMPLE[word]}
+        return {}#{word: DB_INDEX_TEXT_SAMPLE[word]}
 
 def __intersection(*args):
     intersect = set(args[0])
@@ -73,6 +73,9 @@ def make_query_text_part(text):
     for word in words_set: # optimisation
         word_text_index.update(db_result(word, is_descr=False))
 
+    if len(word_text_index) == 0:
+        return None
+
     urls_weight = {}
 
     for word in words_set:
@@ -102,18 +105,28 @@ def make_query_descr_part(descr):
 
 
 def make_query(text_phrase="", descr_words=""):
+    message = ""
     if text_phrase == "":
         common_urls_from_descr = make_query_descr_part(descr_words)
         ranked_result = list(common_urls_from_descr)
+        message = "text is empty"
     else:
         urls_weight_from_text = make_query_text_part(text_phrase)
 
-        if descr_words != "":
-            common_urls_from_descr = make_query_descr_part(descr_words)
-            for url in common_urls_from_descr:
-                if url in urls_weight_from_text.keys():
-                    urls_weight_from_text[url] += DESCRIPTION_WEIGHT
+        if urls_weight_from_text == None:
+            message = "no text words found in the database"
+            if descr_words == "":
+                urls_weight_from_text = []
+            else:
+                common_urls_from_descr = make_query_descr_part(descr_words)
+                ranked_result = list(common_urls_from_descr)
+        else:
+            if descr_words != "":
+                common_urls_from_descr = make_query_descr_part(descr_words)
+                for url in common_urls_from_descr:
+                    if url in urls_weight_from_text.keys():
+                        urls_weight_from_text[url] += DESCRIPTION_WEIGHT
 
-        ranked_result = sorted(urls_weight_from_text, key=urls_weight_from_text.get, reverse=True)
+            ranked_result = sorted(urls_weight_from_text, key=urls_weight_from_text.get, reverse=True)
 
-    return ranked_result
+    return ranked_result, message
