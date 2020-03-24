@@ -4,8 +4,8 @@ BIGRAM_WEIGHT = 3
 PHRASE_WEIGHT = 10
 DESCRIPTION_WEIGHT = 12
 
-DB_INDEX_TEXT_SAMPLE = {'сапака': {'url1': [0, 2], 'url2': [0, 2]}, 'ни': {'url1': [1], 'url2': [1, 5]}, 'пака': {'url1': [3], 'url2': [3]}, 'ана': {'url1': [4], 'url2': [4]}, 'калатна': {'url1': [5], 'url2': [6]}}
-DB_INDEX_DESCR_SAMPLE = {"сапака": {"url1", "url2"}, "фалк": {"url2"}, "тфикс": {"url1"}}
+DB_INDEX_TEXT_SAMPLE = {'сапака': "{'url1': [0, 2], 'url2': [0, 2]}", 'ни': "{'url1': [1], 'url2': [1, 5]}", 'пака': "{'url1': [3], 'url2': [3]}", 'ана': "{'url1': [4], 'url2': [4]}", 'калатна': "{'url1': [5], 'url2': [6]}"}
+DB_INDEX_DESCR_SAMPLE = {"сапака": "{'url1', 'url2'}", "фалк": "{'url2'}", "тфикс": "{'url1'}"}
 
 # input = "{'https:dasdasdasdk.comsads/dsd': [0, 1, 2]}"
 def parse_db_index(db_index_str, is_descr=False):
@@ -18,14 +18,17 @@ def parse_db_index(db_index_str, is_descr=False):
 
         for token in s.split(']')[:-1]: # -1 because after ']', next is empty
             temp = token.split(':')
-            url_poss[temp[0]] = list(temp[1][1:].split(','))
+            url_poss[temp[0]] = [int(num) for num in temp[1][1:].split(',')]
         return url_poss
 
+
+def db_query(word, is_descr=False):
+    return DB_INDEX_DESCR_SAMPLE[word] if is_descr else DB_INDEX_TEXT_SAMPLE[word]
+
+
 def db_result(word, is_descr=False):
-    if is_descr: # get info from description db
-        return DB_INDEX_DESCR_SAMPLE[word]
-    else:
-        return {word: DB_INDEX_TEXT_SAMPLE[word]}
+    return {word: parse_db_index(db_query(word, is_descr), is_descr)}
+
 
 def __intersection(*args):
     intersect = set(args[0])
