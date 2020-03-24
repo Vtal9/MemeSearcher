@@ -4,14 +4,14 @@ BIGRAM_WEIGHT = 3
 PHRASE_WEIGHT = 10
 DESCRIPTION_WEIGHT = 12
 
-DB_INDEX_TEXT_SAMPLE = {'сапака': {'url1': [0, 2]}, 'ни': {'url1': [1], 'url2': [1]}, 'пака': {'url1': [3]}, 'ана': {'url1': [4]}, 'калатна': {'url1': [5]}, 'тфикс': {'url1': [6]}, 'хуи': {'url2': [0, 2, 4]}, 'сахуи': {'url2': [3]}}
+DB_INDEX_TEXT_SAMPLE = {'сапака': {'url1': [0, 2], 'url2': [0, 2]}, 'ни': {'url1': [1], 'url2': [1, 5]}, 'пака': {'url1': [3], 'url2': [3]}, 'ана': {'url1': [4], 'url2': [4]}, 'калатна': {'url1': [5], 'url2': [6]}}
 DB_INDEX_DESCR_SAMPLE = {"сапака": {"url1", "url2"}, "фалк": {"url2"}, "тфикс": {"url1"}}
 
 def db_result(word, is_descr=False):
     if is_descr: # get info from description db
         return DB_INDEX_DESCR_SAMPLE[word]
     else:
-        return {}#{word: DB_INDEX_TEXT_SAMPLE[word]}
+        return {word: DB_INDEX_TEXT_SAMPLE[word]}
 
 def __intersection(*args):
     intersect = set(args[0])
@@ -47,12 +47,12 @@ def _bigram_query(word1, word2, word_index, urls_weight={}):
 
 def _phrase_query(phrase, word_index, urls_weight={}):
     words = phrase.split(' ')
-    common_urls = __intersection(*words)
+    common_urls = __intersection(*word_index.values())
 
     for url in common_urls:
         words_pos = []
         for i, word in enumerate(words):
-            words_pos.append(poss - i for poss in word_index[word][url])
+            words_pos.append(pos - i for pos in word_index[word][url])
 
         if len(__intersection(*words_pos)) != 0:
             if url in urls_weight.keys():
@@ -112,11 +112,11 @@ def make_query(text_phrase="", descr_words=""):
         message = "text is empty"
     else:
         urls_weight_from_text = make_query_text_part(text_phrase)
-
         if urls_weight_from_text == None:
             message = "no text words found in the database"
             if descr_words == "":
                 urls_weight_from_text = []
+                ranked_result = []
             else:
                 common_urls_from_descr = make_query_descr_part(descr_words)
                 ranked_result = list(common_urls_from_descr)
