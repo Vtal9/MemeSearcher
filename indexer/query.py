@@ -80,15 +80,16 @@ def _phrase_query(phrase, word_index, urls_weight={}):
     return urls_weight
 
 
-def make_query_text_part(text):
+def make_query_text_part(text, text_index_db):
     stext = simplifier.simplify_string(text)
 
     word_text_index = {}
 
+    for word in text_index_db.keys():
+        word_text_index[word] = parse_db_index(text_index_db[word], is_descr=False)
+
     words = stext.split(' ')
     words_set = set(words)
-    for word in words_set: # optimisation
-        word_text_index.update(db_result(word, is_descr=False))
 
     if len(word_text_index) == 0:
         return None
@@ -108,38 +109,42 @@ def make_query_text_part(text):
     return urls_weight
 
 
-def make_query_descr_part(descr):
+def make_query_descr_part(descr, descr_index_db):
     sdescr = simplifier.simplify_string(descr)
-    words = sdescr.split(' ')
+    words = [simplifier.simplify_string(word) for word in sdescr.split(', ')]
 
-    common_urls = db_result(words[0], is_descr=True)
+    descr_index = {}
+    for word in descr_index_db:
+        descr_index[word] = parse_db_index(descr_index_db[word], is_descr=True)
+
+    common_urls = descr_index[0] # set from first word
 
     if len(words) > 1:
         for word in words:
-            common_urls.intersection(db_result(word, is_descr=True))
+            common_urls.intersection(descr_index[word])
 
     return common_urls
 
 
-def make_query(text_phrase="", descr_words=""):
+def make_query(text_phrase="", descr_words="", text_index_db={}, descr_index_db={}):
     message = ""
     if text_phrase == "":
-        common_urls_from_descr = make_query_descr_part(descr_words)
+        common_urls_from_descr = make_query_descr_part(descr_words, descr_index_db)
         ranked_result = list(common_urls_from_descr)
         message = "text is empty"
     else:
-        urls_weight_from_text = make_query_text_part(text_phrase)
+        urls_weight_from_text = make_query_text_part(text_phrase, text_index_db)
         if urls_weight_from_text == None:
             message = "no text words found in the database"
             if descr_words == "":
                 urls_weight_from_text = []
                 ranked_result = []
             else:
-                common_urls_from_descr = make_query_descr_part(descr_words)
+                common_urls_from_descr = make_query_descr_part(descr_words, descr_index_db)
                 ranked_result = list(common_urls_from_descr)
         else:
             if descr_words != "":
-                common_urls_from_descr = make_query_descr_part(descr_words)
+                common_urls_from_descr = make_query_descr_part(descr_words, descr_index_db)
                 for url in common_urls_from_descr:
                     if url in urls_weight_from_text.keys():
                         urls_weight_from_text[url] += DESCRIPTION_WEIGHT
