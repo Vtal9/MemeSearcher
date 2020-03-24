@@ -7,18 +7,20 @@ class Images(models.Model):
 	vector = models.TextField()
 
 	def __toStr__(this):
-		return this.id
+		return "toStr"
 
 class TextDescriptions(models.Model):
-	imageId = models.IntegerField()
+	# image = models.ForeignKey(Images, on_delete=models.CASCADE)
+	word = models.TextField(unique=True)
 	index = models.TextField()
 	
 	def __toStr__(this):
-		return this.imageId
+		return this.index
 
 class ImageDescriptions(models.Model):
-	imageId = models.IntegerField()
+	# image = models.ForeignKey(Images, on_delete=models.CASCADE)
+	word = models.TextField(unique=True)
 	index = models.TextField()
 	
 	def __toStr__(this):
-		return this.ImageDescriptions
+		return this.index
