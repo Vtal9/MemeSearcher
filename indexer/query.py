@@ -1,147 +1,119 @@
-import re
 import simplifier
 
-def db_result(word):
-    return [("url1", [0, 1]), ("url2", [0])]
+BIGRAM_WEIGHT = 3
+PHRASE_WEIGHT = 10
+DESCRIPTION_WEIGHT = 12
+
+DB_INDEX_TEXT_SAMPLE = {'сапака': {'url1': [0, 2]}, 'ни': {'url1': [1], 'url2': [1]}, 'пака': {'url1': [3]}, 'ана': {'url1': [4]}, 'калатна': {'url1': [5]}, 'тфикс': {'url1': [6]}, 'хуи': {'url2': [0, 2, 4]}, 'сахуи': {'url2': [3]}}
+DB_INDEX_DESCR_SAMPLE = {"сапака": {"url1", "url2"}, "фалк": {"url2"}, "тфикс": {"url1"}}
+
+def db_result(word, is_descr=False):
+    if is_descr: # get info from description db
+        return DB_INDEX_DESCR_SAMPLE[word]
+    else:
+        return {word: DB_INDEX_TEXT_SAMPLE[word]}
+
+def __intersection(*args):
+    intersect = set(args[0])
+    for arg in args:
+        intersect &= set(arg)
+    return list(intersect)
 
 
 def _one_word_query(word, word_index, urls_weight={}):
-    for t in word_index:
-        if t[0] in urls_weight:
-            urls_weight[t[0]] += len(t[1])
+    for url in word_index[word].keys():
+        if url in urls_weight:
+            urls_weight[url] += len(word_index[word][url])
         else:
-            urls_weight[t[0]] = len(t[1])
+            urls_weight[url] = len(word_index[word][url])
     return urls_weight
 
-def _bigram_word_query(word1, word2, word_index, urls_weight={}):
-    common_urls =
 
-def func(query):
-    sstring = simplifier.simplify_string(query)
+def _bigram_query(word1, word2, word_index, urls_weight={}):
+    common_urls = __intersection(word_index[word1].keys(), word_index[word2].keys())
 
-    word_index = {}
-    for word in sstring.split(' '):
-        word_index[word] = db_result(word)
+    for url in common_urls:
+        poss1 = word_index[word1][url]
+        poss2 = [pos - 1 for pos in word_index[word2][url]]
 
-def phrase_query(sstring, part_index):
-    string = simplifier.simplify_string(string)
-    listOfLists, result = [], []
-    for word in string.split():
-        listOfLists.append(self.one_word_query(word))
-    setted = set(listOfLists[0]).intersection(*listOfLists)
-    for filename in setted:
-        temp = []
-        for word in string.split():
-            temp.append(self.invertedIndex[word][filename][:])
-        for i in range(len(temp)):
-            for ind in range(len(temp[i])):
-                temp[i][ind] -= i
-        if set(temp[0]).intersection(*temp):
-            result.append(filename)
-    return self.rankResults(result, string)
+        if len(__intersection(poss1, poss2)) != 0:
+            if url in urls_weight.keys():
+                urls_weight[url] += BIGRAM_WEIGHT
+            else:
+                urls_weight[url] = BIGRAM_WEIGHT + 2 # + 2
 
-class Query:
-
-    def __init__(self, filenames):
-        self.filenames = filenames
-        self.index = buildindex.BuildIndex(self.filenames)
-        self.invertedIndex = self.index.totalIndex
-        self.regularIndex = self.index.regdex
+    return urls_weight
 
 
-    def one_word_query(self, word):
-        pattern = re.compile(r'[\W_]+')
-        word = pattern.sub(' ', word)
-        if word in self.invertedIndex.keys():
-            return self.rankResults([filename for filename in self.invertedIndex[word].keys()], word)
-        else:
-            return []
+def _phrase_query(phrase, word_index, urls_weight={}):
+    words = phrase.split(' ')
+    common_urls = __intersection(*words)
 
-    def free_text_query(self, string):
-        pattern = re.compile('[\W_]+')
-        string = pattern.sub(' ',string)
-        result = []
-        for word in string.split():
-            result += self.one_word_query(word)
-        return self.rankResults(list(set(result)), string)
+    for url in common_urls:
+        words_pos = []
+        for i, word in enumerate(words):
+            words_pos.append(poss - i for poss in word_index[word][url])
 
-    #inputs = 'query string', {word: {filename: [pos1, pos2, ...], ...}, ...}
-    #inter = {filename: [pos1, pos2]}
-    def phrase_query(self, string):
-        pattern = re.compile('[\W_]+')
-        string = pattern.sub(' ',string)
-        listOfLists, result = [],[]
-        for word in string.split():
-            listOfLists.append(self.one_word_query(word))
-        setted = set(listOfLists[0]).intersection(*listOfLists)
-        for filename in setted:
-            temp = []
-            for word in string.split():
-                temp.append(self.invertedIndex[word][filename][:])
-            for i in range(len(temp)):
-                for ind in range(len(temp[i])):
-                    temp[i][ind] -= i
-            if set(temp[0]).intersection(*temp):
-                result.append(filename)
-        return self.rankResults(result, string)
+        if len(__intersection(*words_pos)) != 0:
+            if url in urls_weight.keys():
+                urls_weight[url] += PHRASE_WEIGHT * len(words)
+            else:
+                urls_weight[url] = PHRASE_WEIGHT * len(words) + len(words)
 
-    def make_vectors(self, documents):
-        vecs = {}
-        for doc in documents:
-            docVec = [0]*len(self.index.getUniques())
-            for ind, term in enumerate(self.index.getUniques()):
-                docVec[ind] = self.index.generateScore(term, doc)
-            vecs[doc] = docVec
-        return vecs
+    return urls_weight
 
 
-    def query_vec(self, query):
-        pattern = re.compile('[\W_]+')
-        query = pattern.sub(' ',query)
-        queryls = query.split()
-        queryVec = [0]*len(queryls)
-        index = 0
-        for ind, word in enumerate(queryls):
-            queryVec[index] = self.queryFreq(word, query)
-            index += 1
-        queryidf = [self.index.idf[word] for word in self.index.getUniques()]
-        magnitude = pow(sum(map(lambda x: x**2, queryVec)),.5)
-        freq = self.termfreq(self.index.getUniques(), query)
-        #print('THIS IS THE FREQ')
-        tf = [x/magnitude for x in freq]
-        final = [tf[i]*queryidf[i] for i in range(len(self.index.getUniques()))]
-        #print(len([x for x in queryidf if x != 0]) - len(queryidf))
-        return final
+def make_query_text_part(text):
+    stext = simplifier.simplify_string(text)
 
-    def queryFreq(self, term, query):
-        count = 0
-        #print(query)
-        #print(query.split())
-        for word in query.split():
-            if word == term:
-                count += 1
-        return count
+    word_text_index = {}
 
-    def termfreq(self, terms, query):
-        temp = [0]*len(terms)
-        for i,term in enumerate(terms):
-            temp[i] = self.queryFreq(term, query)
-            #print(self.queryFreq(term, query))
-        return temp
+    words = stext.split(' ')
+    words_set = set(words)
+    for word in words_set: # optimisation
+        word_text_index.update(db_result(word, is_descr=False))
 
-    def dotProduct(self, doc1, doc2):
-        if len(doc1) != len(doc2):
-            return 0
-        return sum([x*y for x,y in zip(doc1, doc2)])
+    urls_weight = {}
 
-    def rankResults(self, resultDocs, query):
-        vectors = self.make_vectors(resultDocs)
-        #print(vectors)
-        queryVec = self.query_vec(query)
-        #print(queryVec)
-        results = [[self.dotProduct(vectors[result], queryVec), result] for result in resultDocs]
-        #print(results)
-        results.sort(key=lambda x: x[0])
-        #print(results)
-        results = [x[1] for x in results]
-        return results
+    for word in words_set:
+        urls_weight.update(_one_word_query(word, word_text_index, urls_weight))
+
+    if len(words) > 2:
+        i = 0
+        while i + 1 < len(words):
+            urls_weight.update(_bigram_query(words[i], words[i + 1], word_text_index, urls_weight))
+            i += 1
+        urls_weight.update(_phrase_query(stext, word_text_index, urls_weight))
+
+    return urls_weight
+
+
+def make_query_descr_part(descr):
+    sdescr = simplifier.simplify_string(descr)
+    words = sdescr.split(' ')
+
+    common_urls = db_result(words[0], is_descr=True)
+
+    if len(words) > 1:
+        for word in words:
+            common_urls.intersection(db_result(word, is_descr=True))
+
+    return common_urls
+
+
+def make_query(text_phrase="", descr_words=""):
+    if text_phrase == "":
+        common_urls_from_descr = make_query_descr_part(descr_words)
+        ranked_result = list(common_urls_from_descr)
+    else:
+        urls_weight_from_text = make_query_text_part(text_phrase)
+
+        if descr_words != "":
+            common_urls_from_descr = make_query_descr_part(descr_words)
+            for url in common_urls_from_descr:
+                if url in urls_weight_from_text.keys():
+                    urls_weight_from_text[url] += DESCRIPTION_WEIGHT
+
+        ranked_result = sorted(urls_weight_from_text, key=urls_weight_from_text.get, reverse=True)
+
+    return ranked_result
