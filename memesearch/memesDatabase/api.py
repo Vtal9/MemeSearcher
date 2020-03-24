@@ -7,8 +7,7 @@ from .serializers import TextDescriptionsSerializer
 from .serializers import ImagesDescriptionsSerializer
 from django.db.models import Q
 from .indexer import indexer, info, query
-
-
+from django.http import HttpResponse
 
 def searchText(query):
 		textIndex = buildTextIndex(queryText)
@@ -72,7 +71,7 @@ class ImagesViewSet(viewsets.ModelViewSet):
 			queryImage = self.request.GET.get('qImage')
 			
 
-			TextWords = []
+			TextWords = ["111"]
 			ImageWords = []
 			# разбиваем запросы на отдельные слова.
 			if queryText is not None:
@@ -81,11 +80,10 @@ class ImagesViewSet(viewsets.ModelViewSet):
 				ImageWords = splitQuery(queryImage)
 
 			# ищем все картинки в описании которых совпало хотя бы одно слово. получаем список объектов модели
-			querysetText = TextDescriptions.objects.filter(Q(index__in=TextWords))
-			querysetImage = ImageDescriptions.objects.filter(Q(index__in=ImageWords))
+			querysetText = TextDescriptions.objects.filter(Q(word__in=TextWords))
+			querysetImage = ImageDescriptions.objects.filter(Q(word__in=ImageWords))
+			print(querysetText[0].word)
 
-
-			# отдаем ражировщику эти списки
 			if(queryText is None):
 				queryText = ""
 			if (queryImage is None):
@@ -93,13 +91,13 @@ class ImagesViewSet(viewsets.ModelViewSet):
 
 			# получаем список из URL
 			# ([urls],"error")
-			# result = query.make_query(text_phrase=queryText, descr_words=queryImage)
+			# result = query.make_query(text_phrase=queryText, descr_words=queryImage)#сюда было бы неплохо отдавать напрямую резы
 
 			# записываем их в  response
 
 			# if (result[1] == ""):
 			result = [["url1", "url2", "url3"]]
-			print([{'url':i} for i in result[0]])
+			response = HttpResponse([{'url':i} for i in result[0]])
 			queryset = Images.objects.all()
 
 
