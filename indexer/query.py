@@ -22,14 +22,6 @@ def parse_db_index(db_index_str, is_descr=False):
         return url_poss
 
 
-def db_query(word, is_descr=False):
-    return DB_INDEX_DESCR_SAMPLE[word] if is_descr else DB_INDEX_TEXT_SAMPLE[word]
-
-
-def db_result(word, is_descr=False):
-    return {word: parse_db_index(db_query(word, is_descr), is_descr)}
-
-
 def __intersection(*args):
     intersect = set(args[0])
     for arg in args:
