@@ -1,5 +1,5 @@
-import simplifier
-import info
+from . import simplifier
+from . import info
 
 # output = ({word1:url, word2:url}, {word11:url, [pos1, pos2], word2:url, [pos1, pos2]})
 def _make_index(imeme):
